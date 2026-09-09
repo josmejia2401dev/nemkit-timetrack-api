@@ -1,0 +1,12 @@
+node_modules/
+workspace/
+*.log
+coverage/
+.DS_Store
+logs/
+data/
+
+# Environment files (contain secrets) — keep only locally
+.env
+.env.*
+!.env.example

@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+workspace
+coverage
+.git
+.gitignore
+*.md
+.DS_Store
+Dockerfile
+.dockerignore
+data/cache
