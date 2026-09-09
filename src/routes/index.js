@@ -4,7 +4,7 @@ const { express, success, HttpError, hashPassword, comparePassword } = require('
 const { authenticate } = require('../middlewares/auth.middleware');
 
 const authRoutes = require('../modules/foundation/auth/auth.routes');
-const logsRoutes = require('../modules/foundation/logs/logs.routes');
+const logsRoutes = require('../modules/foundation/loggers/logs.routes');
 const { usersService } = require('../modules/foundation/users/users.service');
 
 const projectsRoutes = require('../modules/timetrack/projects/projects.routes');
