@@ -5,7 +5,7 @@ const path = require('path');
 
 const env = loadEnv({
   NODE_ENV:       { default: 'development' },
-  HOST:           { default: 'localhost' },
+  HOST:           { default: () => process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost' },
   PORT:           { type: 'number', default: () => process.env.PORT || 4000 },
   API_PREFIX:     { default: '/api/v1' },
 
