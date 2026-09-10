@@ -28,15 +28,8 @@ const cache = new TieredCache({
 });
 
 const versions = new Map();
-const knownKeys = new Set();
-
-const rememberKey = (key) => knownKeys.add(key);
-const forgetKeys = (pattern) => {
-  const regex = new RegExp(`^${pattern.replace(/\*/g, '.*')}$`);
-  for (const key of knownKeys) {
-    if (regex.test(key)) knownKeys.delete(key);
-  }
-};
+const memoryKeys = new Set();
+const persistedKeys = new Set();
 const readDiskEntries = () => {
   try {
     if (!fs.existsSync(cacheFile)) return {};
@@ -50,7 +43,8 @@ const readDiskEntries = () => {
 };
 const serializedSize = (value) => Buffer.byteLength(JSON.stringify(value ?? null), 'utf8');
 const setCache = (key, value, ttlMs) => {
-  rememberKey(key);
+  memoryKeys.add(key);
+  persistedKeys.add(key);
   return cache.set(key, value, ttlMs != null ? { ttlMs } : undefined);
 };
 
@@ -76,12 +70,13 @@ const knowledgeCache = {
 
   get: (key) => {
     const value = cache.get(key);
-    if (value !== undefined) rememberKey(key);
+    if (value !== undefined) memoryKeys.add(key);
     return value;
   },
   set: setCache,
   del: (key) => {
-    knownKeys.delete(key);
+    memoryKeys.delete(key);
+    persistedKeys.delete(key);
     return cache.del(key);
   },
 
@@ -106,7 +101,12 @@ const knowledgeCache = {
   /** Invalida TODO el knowledge cacheado de un usuario. Llamar tras cualquier escritura. */
   invalidateUser: (userId) => {
     bumpVersion(userId);
-    forgetKeys(`u:${userId}:*`);
+    for (const key of memoryKeys) {
+      if (key.startsWith(`u:${userId}:`)) memoryKeys.delete(key);
+    }
+    for (const key of persistedKeys) {
+      if (key.startsWith(`u:${userId}:`)) persistedKeys.delete(key);
+    }
     return cache.invalidatePattern(`u:${userId}:*`);
   },
 
@@ -120,25 +120,24 @@ const knowledgeCache = {
     const diskKeys = Object.keys(diskEntries)
       .filter((key) => key.startsWith('knowledge:'))
       .map((key) => key.slice('knowledge:'.length));
-    const allKeys = [...new Set([...knownKeys, ...diskKeys])]
+    const allKeys = [...new Set([...memoryKeys, ...persistedKeys, ...diskKeys])]
       .filter((key) => key.toLowerCase().includes(String(search).toLowerCase()))
       .sort();
     const safePage = Math.max(1, Number(page) || 1);
     const safeLimit = Math.min(100, Math.max(1, Number(limit) || 50));
     const start = (safePage - 1) * safeLimit;
-    const entries = allKeys.slice(start, start + safeLimit).map((key) => {
-      const fullKey = `knowledge:${key}`;
-      const record = diskEntries[fullKey];
-      return {
-        key,
-        expiresAt: record?.expiresAt ?? null,
-        sizeBytes: serializedSize(record?.value),
-        availableInMemory: knowledgeCache.get(key) !== undefined,
-        availableOnDisk: Boolean(record),
-      };
-    });
     return {
-      entries,
+      entries: allKeys.slice(start, start + safeLimit).map((key) => {
+        const record = diskEntries[`knowledge:${key}`];
+        const value = memoryKeys.has(key) ? cache.get(key) : record?.value;
+        return {
+          key,
+          expiresAt: record?.expiresAt ?? null,
+          sizeBytes: serializedSize(value),
+          availableInMemory: memoryKeys.has(key),
+          availableOnDisk: persistedKeys.has(key) || Boolean(record),
+        };
+      }),
       pagination: {
         page: safePage,
         limit: safeLimit,
@@ -158,21 +157,28 @@ const knowledgeCache = {
       value: resolvedValue,
       expiresAt: record?.expiresAt ?? null,
       sizeBytes: serializedSize(resolvedValue),
-      availableInMemory: value !== undefined,
-      availableOnDisk: Boolean(record),
+      availableInMemory: memoryKeys.has(key),
+      availableOnDisk: persistedKeys.has(key) || Boolean(record),
     };
   },
   deleteEntry: (key) => knowledgeCache.del(key),
   invalidatePattern: (pattern) => {
     const userId = /^u:([^:]+):/.exec(pattern)?.[1];
     if (userId) bumpVersion(userId);
-    forgetKeys(pattern);
+    const regex = new RegExp(`^${pattern.replace(/\*/g, '.*')}$`);
+    for (const key of memoryKeys) {
+      if (regex.test(key)) memoryKeys.delete(key);
+    }
+    for (const key of persistedKeys) {
+      if (regex.test(key)) persistedKeys.delete(key);
+    }
     return cache.invalidatePattern(pattern);
   },
 
   /** Utilidad para tests/diagnóstico. */
   clear: () => {
-    knownKeys.clear();
+    memoryKeys.clear();
+    persistedKeys.clear();
     return cache.clear();
   },
   stats: () => cache.getStats(),

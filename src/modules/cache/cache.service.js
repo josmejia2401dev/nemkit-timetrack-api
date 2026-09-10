@@ -26,15 +26,16 @@ class CacheService {
   }
 
   getEntry(cacheName, key) {
-    const entry = this.#adapter(cacheName).getEntry(key);
+    const entry = this.#adapter(cacheName).getEntry(this.#normalizeKey(key));
     if (!entry) throw HttpError.notFound('Cache entry not found');
     return entry;
   }
 
   deleteEntry(cacheName, key) {
-    const deleted = this.#adapter(cacheName).deleteEntry(key);
+    const normalizedKey = this.#normalizeKey(key);
+    const deleted = this.#adapter(cacheName).deleteEntry(normalizedKey);
     if (!deleted) throw HttpError.notFound('Cache entry not found');
-    return { deleted: true, key };
+    return { deleted: true, key: normalizedKey };
   }
 
   invalidate(cacheName, pattern) {
@@ -74,6 +75,11 @@ class CacheService {
       throw HttpError.badRequest('Cache administration is not supported');
     }
     return adapter;
+  }
+
+  #normalizeKey(key) {
+    try { return decodeURIComponent(String(key ?? '')); }
+    catch { throw HttpError.badRequest('Invalid cache key'); }
   }
 
   #operations(cacheName) {
