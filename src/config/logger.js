@@ -1,6 +1,6 @@
 'use strict';
 
-const { createLogger } = require('nemkit');
+const { createLogger, RequestContext } = require('nemkit');
 const { env } = require('./env');
 
 module.exports = createLogger({
@@ -8,4 +8,8 @@ module.exports = createLogger({
   logsPath: env.LOGS_LOCAL_PATH,
   environment: env.NODE_ENV,
   appName: 'nemkit-timetrack',
+  contextProvider: () => ({
+    requestId: RequestContext.getRequestId(),
+    userId: RequestContext.getUserId(),
+  }),
 });

@@ -1,6 +1,6 @@
 'use strict';
 
-const { express, success, HttpError, hashPassword, comparePassword } = require('nemkit');
+const { express, success, HttpError, hashPassword, comparePassword, RequestContext } = require('nemkit');
 const { authenticate } = require('../middlewares/auth.middleware');
 
 const authRoutes = require('../modules/foundation/auth/auth.routes');
@@ -22,6 +22,12 @@ router.use('/auth', authRoutes);
 
 // Protected
 router.use(authenticate);
+
+// Propaga el usuario autenticado al contexto para correlación en logs.
+router.use((req, _res, next) => {
+  if (req.user?.id != null) RequestContext.setUserId(req.user.id);
+  next();
+});
 
 // Profile
 router.get('/profile', async (req, res, next) => {
