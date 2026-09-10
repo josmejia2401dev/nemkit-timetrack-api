@@ -23,8 +23,9 @@ const env = loadEnv({
   RATE_LIMIT_WINDOW_MS:  { type: 'number', default: 900000 },
   RATE_LIMIT_MAX:        { type: 'number', default: 1000 },
 
-  LOG_LEVEL:       { default: 'info' },
-  LOGS_LOCAL_PATH: { default: './logs' },
+  LOG_LEVEL:            { default: 'info' },
+  LOGS_LOCAL_PATH:      { default: './logs' },
+  REQUEST_LOG_ENABLED:  { type: 'boolean', default: true },
 
   // Seed del admin (primer arranque, si no hay usuarios).
   // Los tres son REQUERIDOS y sin default: nada de credenciales del admin

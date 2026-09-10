@@ -1,10 +1,9 @@
 'use strict';
 
-const { createApp, requestIdMiddleware, createErrorMiddleware, createCorsMiddleware, RequestContext } = require('nemkit');
+const { createApp, requestIdMiddleware, createErrorMiddleware, createCorsMiddleware, RequestContext, createRequestLogger } = require('nemkit');
 const { env } = require('./config/env');
 const logger = require('./config/logger');
 const { mongoClient } = require('./config/db');
-const { auditMiddleware } = require('./middlewares/audit.middleware');
 const router = require('./routes/index');
 const pkg = require('../package.json');
 
@@ -20,7 +19,7 @@ const app = createApp({
 app.use(requestIdMiddleware);
 app.use(RequestContext.middleware());
 app.use(createCorsMiddleware({ origins: env.CORS_ORIGINS, logger }));
-app.use(auditMiddleware);
+app.use(createRequestLogger({ logger, enabled: env.REQUEST_LOG_ENABLED }));
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: Date.now() }));
 

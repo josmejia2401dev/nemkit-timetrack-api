@@ -13,6 +13,7 @@ const tasksRoutes = require('../modules/timetrack/tasks/tasks.routes');
 const notesRoutes = require('../modules/timetrack/notes/notes.routes');
 const knowledgeRoutes = require('../modules/knowledge/knowledge.routes');
 const cacheRoutes = require('../modules/cache/cache.routes');
+const systemRoutes = require('../modules/system/system.routes');
 
 const router = express.Router();
 
@@ -91,6 +92,9 @@ router.use('/knowledge', knowledgeRoutes);
 
 // Cache administration (ADMIN only) — no manual value editing
 router.use('/cache', cacheRoutes);
+
+// System resource metrics (ADMIN only)
+router.use('/system', systemRoutes);
 
 // Logs viewer (ADMIN only, enforced inside the router)
 router.use('/logs', logsRoutes);
