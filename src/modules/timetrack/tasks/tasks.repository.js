@@ -18,28 +18,40 @@ class TasksRepository extends MongoRepository {
         $inc: { totalMs: record.durationMs },
         $set: { updatedBy: userId },
       },
-      { returnDocument: 'after' },
+      { returnDocument: 'after', lean: true }, // Forzar POJO limpio
     );
     return this.normalizeOutput(doc);
   }
 
   /**
-   * Elimina un time record por su _id y recalcula totalMs.
+   * Elimina un time record por su _id y recalcula totalMs de forma 100% atómica.
+   * Evita instanciar el documento Mongoose en memoria (bypasses .save()).
    */
   async pullTimeRecord(id, recordId, userId = null) {
-    const task = await this.model.findOne({ _id: id, ...this._baseFilter() });
-    if (!task) return null;
+    // 1. Obtener solo la proyección del record específico para saber cuánto tiempo restar
+    const task = await this.model.findOne(
+      { _id: id, 'timeRecords._id': recordId, ...this._baseFilter() },
+      { 'timeRecords.$': 1 }
+    ).lean();
 
-    const record = task.timeRecords.id(recordId);
-    if (!record) return { notFound: true };
+    if (!task || !task.timeRecords || !task.timeRecords.length) {
+      return { notFound: true };
+    }
 
-    // Remove the subdocument by its real _id (ObjectId), then recompute total.
-    record.deleteOne();
-    task.totalMs = task.timeRecords.reduce((sum, r) => sum + (r.durationMs || 0), 0);
-    task.updatedBy = userId;
-    await task.save();
+    const durationMsToRemove = task.timeRecords[0].durationMs || 0;
 
-    return this.normalizeOutput(task);
+    // 2. Ejecutar $pull y $inc atómicamente
+    const updatedDoc = await this.model.findOneAndUpdate(
+      { _id: id, ...this._baseFilter() },
+      {
+        $pull: { timeRecords: { _id: recordId } },
+        $inc: { totalMs: -durationMsToRemove },
+        $set: { updatedBy: userId },
+      },
+      { returnDocument: 'after', lean: true }
+    );
+
+    return this.normalizeOutput(updatedDoc);
   }
 }
 

@@ -5,7 +5,7 @@ coverage/
 .DS_Store
 logs/
 data/
-
+tmp/
 # Environment files (contain secrets) — keep only locally
 .env
 .env.*

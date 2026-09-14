@@ -12,3 +12,4 @@ coverage
 Dockerfile
 .dockerignore
 data/cache
+tmp/

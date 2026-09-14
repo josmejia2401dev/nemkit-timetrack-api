@@ -1,5 +1,7 @@
 'use strict';
 
+process.env.UV_THREADPOOL_SIZE = process.env.UV_THREADPOOL_SIZE || '64';
+
 const { createServer } = require('nemkit');
 const { env } = require('./config/env');
 const logger = require('./config/logger');

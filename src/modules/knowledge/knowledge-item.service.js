@@ -82,7 +82,7 @@ class KnowledgeItemService extends BaseService {
   async getWithContent(id, userId) {
     const item = await knowledgeCache.getOrSet(
       userId,
-      knowledgeCache.keys.item(userId, id),
+      knowledgeCache.keys.itemContent(userId, id),
       () => this.repository.findWithContent(id, userId),
     );
     if (!item) throw HttpError.notFound('Item not found');

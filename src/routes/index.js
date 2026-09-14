@@ -12,7 +12,6 @@ const activitiesRoutes = require('../modules/timetrack/activities/activities.rou
 const tasksRoutes = require('../modules/timetrack/tasks/tasks.routes');
 const notesRoutes = require('../modules/timetrack/notes/notes.routes');
 const knowledgeRoutes = require('../modules/knowledge/knowledge.routes');
-const cacheRoutes = require('../modules/foundation/cache/cache.routes');
 const systemRoutes = require('../modules/foundation/system/system.routes');
 
 const router = express.Router();
