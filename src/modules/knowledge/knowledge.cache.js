@@ -186,7 +186,7 @@ const knowledgeCache = {
 };
 
 // Auto-registro en el diagnóstico de caches (solo estadísticas, nunca datos).
-const { cacheRegistry } = require('../foundation/cache-stats/cache-registry');
+const { cacheRegistry } = require('../foundation/cache/cache-registry');
 cacheRegistry.register('knowledge', {
   type: 'tiered-memory-file',
   getStats: () => cache.getStats(),

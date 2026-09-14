@@ -1,7 +1,7 @@
 'use strict';
 
 const { HttpError } = require('nemkit');
-const { cacheRegistry } = require('../foundation/cache-stats/cache-registry');
+const { cacheRegistry } = require('./cache-registry');
 
 const MAX_LIMIT = 100;
 

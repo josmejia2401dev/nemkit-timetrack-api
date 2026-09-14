@@ -10,15 +10,18 @@ const { mongoose, applyPlatformSchema } = require('nemkit');
  * - sizeBytes: tamaño del contenido en bytes, para validar el límite de 1MB.
  */
 const KnowledgeItemSchema = applyPlatformSchema({
-  userId:    { type: Number, required: true, index: true },
-  folderId:  { type: Number, default: null, index: true },
-  name:      { type: String, required: true, trim: true },
-  kind:      { type: String, enum: ['file', 'note', 'bug'], default: 'file', index: true }, // tipo de entrada
-  language:  { type: String, default: 'text' },     // java, javascript, markdown, text, json, ...
-  mimeType:  { type: String, default: 'text/plain' },
-  sizeBytes: { type: Number, default: 0 },           // tamaño en bytes
-  content:   { type: String, default: '', select: false }, // texto plano, oculto por defecto (pesa)
-  tags:      [{ type: String, trim: true }],
+  userId:        { type: Number, required: true, index: true },
+  folderId:      { type: Number, default: null, index: true },
+  name:          { type: String, required: true, trim: true },
+  kind:          { type: String, enum: ['file', 'note', 'bug'], default: 'file', index: true }, // tipo de entrada
+  language:      { type: String, default: 'text' },     // java, javascript, markdown, text, json, ...
+  mimeType:      { type: String, default: 'text/plain' },
+  sizeBytes:     { type: Number, default: 0 },           // tamaño en bytes
+  isBinary:      { type: Boolean, default: false, index: true }, // true = archivo cargado (binaryContent), false = texto (content)
+  originalName:  { type: String, default: null },        // nombre original del archivo cargado
+  content:       { type: String, default: '', select: false },  // texto plano, oculto por defecto (pesa)
+  binaryContent: { type: Buffer, select: false },        // contenido binario del archivo cargado, oculto por defecto
+  tags:          [{ type: String, trim: true }],
 });
 
 module.exports = mongoose.model('knowledge_items', KnowledgeItemSchema);

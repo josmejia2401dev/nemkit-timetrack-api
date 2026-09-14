@@ -1,7 +1,7 @@
 'use strict';
 
 const { success, getSystemMetrics } = require('nemkit');
-const { env } = require('../../config/env');
+const { env } = require('../../../config/env');
 
 class SystemController {
   getMetrics(_req, res, next) {

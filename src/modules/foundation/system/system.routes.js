@@ -2,7 +2,7 @@
 
 const { express } = require('nemkit');
 const { systemController } = require('./system.controller');
-const { requireRole } = require('../../middlewares/authorize.middleware');
+const { requireRole } = require('../../../middlewares/authorize.middleware');
 
 const router = express.Router();
 

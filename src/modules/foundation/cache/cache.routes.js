@@ -1,7 +1,7 @@
 'use strict';
 
 const { express } = require('nemkit');
-const { requireRole } = require('../../middlewares/authorize.middleware');
+const { requireRole } = require('../../../middlewares/authorize.middleware');
 const { cacheController: c } = require('./cache.controller');
 
 const router = express.Router();

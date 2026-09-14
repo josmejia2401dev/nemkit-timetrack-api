@@ -3,6 +3,7 @@
 const { success, created } = require('nemkit');
 const { knowledgeFolderService } = require('./knowledge-folder.service');
 const { knowledgeItemService } = require('./knowledge-item.service');
+const { storageHandler } = require('../../config/storage');
 const {
   folderCreateSchema, folderRenameSchema, folderMoveSchema,
   itemCreateSchema, itemUpdateSchema, itemMoveSchema,
@@ -17,6 +18,7 @@ class KnowledgeController {
   constructor() {
     this.folders = knowledgeFolderService;
     this.items = knowledgeItemService;
+    this.chunkMeta = new Map(); // uploadId -> { folderId, name, userId }
   }
 
   // ── Tree ──────────────────────────────────────────────
@@ -93,6 +95,97 @@ class KnowledgeController {
     try {
       // Incluye el contenido descomprimido
       return success(res, await this.items.getWithContent(+req.params.id, req.user.id));
+    } catch (err) { next(err); }
+  }
+
+  // ── Upload / Download (binarios vía nemkit/storage) ──
+  async uploadItem(req, res, next) {
+    let fileHandle = null;
+    try {
+      const originalName = decodeURIComponent(req.headers['x-file-name'] || 'file');
+      const mime = req.headers['content-type'] || 'application/octet-stream';
+      const folderId = parseNullableId(req.query.folderId);
+      const name = req.query.name ? decodeURIComponent(String(req.query.name)) : originalName;
+
+      // El request es un stream; el handler decide memoria vs disco por tamaño.
+      fileHandle = await storageHandler.receive(req, { originalName, mime });
+
+      const item = await this.items.createFromUpload(fileHandle, { name, folderId }, req.user.id);
+      return created(res, item);
+    } catch (err) {
+      next(err);
+    } finally {
+      if (fileHandle) { try { await fileHandle.discard(); } catch { /* staging ya limpio */ } }
+    }
+  }
+
+  // ── Chunked upload (archivos ≥ 500 KB) ──
+  async initChunkUpload(req, res, next) {
+    try {
+      const { originalName, mime, totalChunks, totalSize } = req.body;
+      if (!originalName || !totalChunks) return res.status(400).json({ success: false, message: 'originalName and totalChunks are required' });
+      const folderId = parseNullableId(req.body.folderId);
+      const name = req.body.name ? String(req.body.name) : String(originalName);
+
+      const session = await storageHandler.initChunkUpload({
+        originalName: String(originalName),
+        mime: mime || 'application/octet-stream',
+        totalChunks: Number(totalChunks),
+        totalSize: totalSize != null ? Number(totalSize) : null,
+      });
+
+      this.chunkMeta.set(session.uploadId, { folderId, name, userId: req.user.id });
+      return success(res, { uploadId: session.uploadId, totalChunks: session.totalChunks });
+    } catch (err) { next(err); }
+  }
+
+  async uploadChunk(req, res, next) {
+    try {
+      const { uploadId, index } = req.params;
+      const meta = this.chunkMeta.get(uploadId);
+      if (!meta || meta.userId !== req.user.id) return res.status(404).json({ success: false, message: 'Upload session not found' });
+
+      const result = await storageHandler.receiveChunk(uploadId, Number(index), req);
+      return success(res, result);
+    } catch (err) { next(err); }
+  }
+
+  async completeChunkUpload(req, res, next) {
+    let fileHandle = null;
+    try {
+      const { uploadId } = req.params;
+      const meta = this.chunkMeta.get(uploadId);
+      if (!meta || meta.userId !== req.user.id) return res.status(404).json({ success: false, message: 'Upload session not found' });
+
+      fileHandle = await storageHandler.complete(uploadId);
+      const item = await this.items.createFromUpload(fileHandle, { name: meta.name, folderId: meta.folderId }, req.user.id);
+      this.chunkMeta.delete(uploadId);
+      return created(res, item);
+    } catch (err) {
+      next(err);
+    } finally {
+      if (fileHandle) { try { await fileHandle.discard(); } catch { /* limpio */ } }
+    }
+  }
+
+  async abortChunkUpload(req, res, next) {
+    try {
+      const { uploadId } = req.params;
+      const meta = this.chunkMeta.get(uploadId);
+      if (meta && meta.userId !== req.user.id) return res.status(404).json({ success: false, message: 'Upload session not found' });
+      await storageHandler.abortChunkUpload(uploadId);
+      this.chunkMeta.delete(uploadId);
+      return success(res, { aborted: true });
+    } catch (err) { next(err); }
+  }
+
+  async downloadItem(req, res, next) {
+    try {
+      const file = await this.items.getBinary(+req.params.id, req.user.id);
+      res.setHeader('Content-Type', file.mimeType);
+      res.setHeader('Content-Length', file.sizeBytes);
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.originalName)}"`);
+      return res.end(file.buffer);
     } catch (err) { next(err); }
   }
 

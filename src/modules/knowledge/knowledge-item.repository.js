@@ -24,6 +24,11 @@ class KnowledgeItemRepository extends MongoRepository {
     return this.normalizeOutput(doc);
   }
 
+  /** Obtiene un item con su binaryContent (Buffer) para descarga. Devuelve el doc mongoose crudo. */
+  findBinary(id, userId) {
+    return this.model.findOne({ _id: id, userId, ...this._baseFilter() }).select('+binaryContent');
+  }
+
   /**
    * Busca items del usuario por nombre, tags o contenido (case-insensitive).
    * Usa regex sobre name/content/tags para permitir coincidencias parciales.

@@ -27,6 +27,11 @@ const env = loadEnv({
   LOGS_LOCAL_PATH:      { default: './logs' },
   REQUEST_LOG_ENABLED:  { type: 'boolean', default: true },
 
+  STORAGE_TMP_PATH:        { default: './tmp/storage' },
+  STORAGE_MEMORY_LIMIT_MB: { type: 'number', default: 5 },   // < 5MB → staging en RAM
+  STORAGE_MAX_FILE_MB:     { type: 'number', default: 15 },  // límite hard (BSON < 16MB)
+  STORAGE_STAGING_TTL_MS:  { type: 'number', default: 1800000 },
+
   // Seed del admin (primer arranque, si no hay usuarios).
   // Los tres son REQUERIDOS y sin default: nada de credenciales del admin
   // queda hardcodeado en el código. Deben venir del entorno (.env / Render).

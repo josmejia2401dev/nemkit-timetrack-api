@@ -118,6 +118,54 @@ class KnowledgeItemService extends BaseService {
     return meta;
   }
 
+  /**
+   * Crea un item a partir de un FileHandle de nemkit/storage (archivo cargado).
+   * El handler ya resolvió el staging (memoria o disco); aquí obtenemos el
+   * buffer y lo persistimos en Mongo.
+   * @param {import('nemkit').FileHandle} fileHandle
+   * @param {{ name?:string, folderId?:number|null, tags?:string[] }} meta
+   * @param {number} userId
+   */
+  async createFromUpload(fileHandle, meta, userId) {
+    const fid = meta.folderId ?? null;
+    await this.#assertFolder(fid, userId);
+
+    const buffer = await fileHandle.buffer();
+    const name = (meta.name ?? fileHandle.originalName ?? 'file').trim();
+
+    const created = await this.repository.create({
+      userId,
+      folderId: fid,
+      name,
+      kind: 'file',
+      language: 'binary',
+      mimeType: fileHandle.mime || 'application/octet-stream',
+      sizeBytes: fileHandle.size ?? buffer.length,
+      isBinary: true,
+      originalName: fileHandle.originalName ?? name,
+      binaryContent: buffer,
+      tags: Array.isArray(meta.tags) ? meta.tags : [],
+    }, userId);
+
+    const { content: _c, binaryContent: _b, ...clean } = created;
+    knowledgeCache.invalidateUser(userId);
+    return clean;
+  }
+
+  /** Obtiene el item binario (Buffer + metadata) para descarga. Lanza 404 si no existe o no es binario. */
+  async getBinary(id, userId) {
+    const doc = await this.repository.findBinary(id, userId);
+    if (!doc || !doc.isBinary || !doc.binaryContent) {
+      throw HttpError.notFound('File not found');
+    }
+    return {
+      buffer: doc.binaryContent,
+      mimeType: doc.mimeType || 'application/octet-stream',
+      originalName: doc.originalName || doc.name,
+      sizeBytes: doc.sizeBytes,
+    };
+  }
+
   async updateOwned(id, payload, userId) {
     await this.getOwned(id, userId);
 

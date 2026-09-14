@@ -7,7 +7,7 @@
  * estadísticas (NUNCA sus datos). El endpoint de diagnóstico consume esto.
  *
  * Uso:
- *   const { cacheRegistry } = require('.../cache-registry');
+ *   const { cacheRegistry } = require('./cache-registry');
  *   cacheRegistry.register('knowledge', { type: 'memory', getStats: () => cache.stats() });
  */
 class CacheRegistry {
