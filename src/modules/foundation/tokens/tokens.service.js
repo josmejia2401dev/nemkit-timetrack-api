@@ -1,10 +1,10 @@
 'use strict';
 
-const { createCache } = require('nemkit');
+const { createMemoryCache } = require('nemkit');
 const { env } = require('../../../config/env');
 const { TokensRepository } = require('./tokens.repository');
 
-const jtiBlacklist = createCache({ maxSize: 10000, defaultTtlMs: 30 * 60 * 1000, policy: 'LRU' });
+const jtiBlacklist = createMemoryCache({ maxSize: 10000, defaultTtlMs: 30 * 60 * 1000, policy: 'LRU' });
 
 class TokensService {
   constructor() { this.repository = new TokensRepository(); }

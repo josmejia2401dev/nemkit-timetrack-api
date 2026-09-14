@@ -95,9 +95,6 @@ router.use('/notes', notesRoutes.flatRouter);
 // Knowledge base: folders (N-level tree) + items (files/notes/bugs)
 router.use('/knowledge', knowledgeRoutes);
 
-// Cache administration (ADMIN only) — no manual value editing
-router.use('/cache', cacheRoutes);
-
 // System resource metrics (ADMIN only)
 router.use('/system', systemRoutes);
 
